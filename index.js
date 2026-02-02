@@ -1,9 +1,11 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const axios = require('axios');
+const qrcode = require('qrcode-terminal');
 require('dotenv').config();
 
-const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://dkpfvlvrceubufkjkhyl.supabase.co/functions/v1/whatsapp-webhook';
+const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://jtotljjdyhxjbbsnpuml.supabase.co/functions/v1/whatsapp-webhook';
+const BOT_WHATSAPP_NUMBER = process.env.BOT_WHATSAPP_NUMBER; // Your bot's WhatsApp number (e.g., +1234567890)
 const PORT = process.env.PORT || 3000;
 
 let sock;
@@ -13,14 +15,18 @@ const MAX_QR_RETRIES = 5;
 // Store message processing state to avoid duplicates
 const processedMessages = new Set();
 
-async function sendToWebhook(phone, message, messageId) {
+async function sendToWebhook(fromPhone, message, messageId) {
     try {
-        console.log(`📤 Sending to webhook: ${phone} -> "${message}"`);
+        console.log(`📤 Sending to webhook: ${fromPhone} -> "${message}"`);
         
+        // Send in format compatible with your webhook
+        // Format: { from: "whatsapp:+1234567890", to: "whatsapp:+0987654321", body: "message", messageSid: "id" }
         const response = await axios.post(WEBHOOK_URL, {
-            phone: phone,
-            message: message,
-            messageId: messageId,
+            from: `whatsapp:${fromPhone}`,
+            to: `whatsapp:${BOT_WHATSAPP_NUMBER}`,
+            body: message,
+            messageSid: messageId,
+            numMedia: 0,
             timestamp: new Date().toISOString()
         }, {
             headers: {
@@ -55,9 +61,8 @@ async function connectToWhatsApp() {
     sock = makeWASocket({
         version,
         logger: pino({ level: 'silent' }), // Change to 'info' for debugging
-        printQRInTerminal: true,
         auth: state,
-        browser: ['MediDesk Bot', 'Chrome', '1.0.0'],
+        browser: ['Hospital Assistant Bot', 'Chrome', '1.0.0'],
         getMessage: async (key) => {
             return { conversation: '' };
         }
@@ -70,6 +75,12 @@ async function connectToWhatsApp() {
             qrRetries++;
             console.log('\n📱 QR Code generated! Scan it with WhatsApp.');
             console.log(`⚠️  QR Code attempt ${qrRetries}/${MAX_QR_RETRIES}`);
+            console.log('\n');
+            
+            // Display QR code in terminal
+            qrcode.generate(qr, { small: true });
+            
+            console.log('\nScan this QR code with WhatsApp → Settings → Linked Devices → Link a Device');
             
             if (qrRetries >= MAX_QR_RETRIES) {
                 console.log('❌ Max QR retries reached. Restarting...');
@@ -88,7 +99,18 @@ async function connectToWhatsApp() {
             }
         } else if (connection === 'open') {
             console.log('✅ WhatsApp connection established!');
-            console.log('🟢 MediDesk WhatsApp Bot is running...');
+            console.log('🟢 Hospital WhatsApp Bot is running...');
+            
+            // Get bot's phone number
+            if (sock.user) {
+                const botNumber = sock.user.id.split(':')[0];
+                console.log(`📱 Bot WhatsApp Number: +${botNumber}`);
+                
+                if (!BOT_WHATSAPP_NUMBER) {
+                    console.log('⚠️  Set BOT_WHATSAPP_NUMBER in .env to: +' + botNumber);
+                }
+            }
+            
             qrRetries = 0;
         }
     });
@@ -137,7 +159,7 @@ async function connectToWhatsApp() {
                     continue;
                 }
 
-                console.log(`\n📨 New message from ${phone}: "${messageText}"`);
+                console.log(`\n📨 New message from +${phone}: "${messageText}"`);
 
                 // Send to webhook and get AI response
                 const webhookResponse = await sendToWebhook(phone, messageText, messageId);
