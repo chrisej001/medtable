@@ -1,148 +1,143 @@
-# 🚀 Quick Start Guide - MediDesk WhatsApp Bot
+# 🚀 Quick Setup - Hospital WhatsApp Bot
 
-## For Complete Beginners
+## Step-by-Step (10 minutes)
 
-### 1️⃣ Install Node.js (5 minutes)
-
-**Windows:**
-1. Go to https://nodejs.org/
-2. Download the "LTS" version (left button)
-3. Run the installer
-4. Click "Next" through all steps
-5. Restart your computer
-
-**Mac:**
-1. Go to https://nodejs.org/
-2. Download the "LTS" version
-3. Open the .pkg file
-4. Follow installation steps
-
-**Verify installation:**
-Open Command Prompt (Windows) or Terminal (Mac) and type:
-```bash
-node --version
-```
-You should see something like `v18.17.0`
-
----
-
-### 2️⃣ Setup the Bot (5 minutes)
-
-**Windows:**
-1. Download the `whatsapp-bot` folder to your Desktop
-2. Right-click the folder → "Open in Terminal" (or "Open Command Prompt here")
-3. Type these commands one by one:
+### 1️⃣ Install & Configure (3 min)
 
 ```bash
-npm install
-copy .env.example .env
-npm start
-```
-
-**Mac/Linux:**
-1. Download the `whatsapp-bot` folder to your Desktop
-2. Right-click the folder → "New Terminal at Folder"
-3. Type these commands one by one:
-
-```bash
+cd hospital-whatsapp-bot
 npm install
 cp .env.example .env
-npm start
+```
+
+Edit `.env`:
+```
+WEBHOOK_URL=https://jtotljjdyhxjbbsnpuml.supabase.co/functions/v1/whatsapp-webhook
+BOT_WHATSAPP_NUMBER=+1234567890
 ```
 
 ---
 
-### 3️⃣ Connect WhatsApp (2 minutes)
+### 2️⃣ Update Supabase Function (5 min)
 
-1. A QR code will appear in your terminal
-2. Open WhatsApp on your phone
-3. Go to Settings → Linked Devices
-4. Tap "Link a Device"
-5. Scan the QR code
+**Deploy the updated webhook:**
 
-You should see: ✅ **WhatsApp connection established!**
+```bash
+# Copy the new function file to your Supabase project
+cp supabase-functions/whatsapp-webhook.ts YOUR_SUPABASE_PROJECT/supabase/functions/
+
+# Deploy
+cd YOUR_SUPABASE_PROJECT
+supabase functions deploy whatsapp-webhook
+```
+
+**What changed:**
+- Now accepts JSON (from Baileys) in addition to FormData (from Twilio)
+- Returns JSON response instead of TwiML for Baileys
+- Auto-detects source and responds appropriately
 
 ---
 
-### 4️⃣ Test It! (1 minute)
+### 3️⃣ Configure Hospital (1 min)
 
-1. From another phone, send a WhatsApp message to your bot number
-2. The bot should reply automatically!
-3. Check your MediDesk dashboard - you'll see the conversation
+```sql
+-- In Supabase SQL Editor
+UPDATE hospitals 
+SET whatsapp_enabled = true,
+    whatsapp_number = '+1234567890'  -- Your bot's number
+WHERE id = 'your-hospital-id';
+```
 
 ---
 
-## ✅ That's it! Your bot is running!
+### 4️⃣ Start Bot (1 min)
 
-**To stop the bot:** Press `Ctrl + C` in the terminal
-
-**To start again:** Open terminal in the folder and run:
 ```bash
 npm start
 ```
 
----
-
-## 🆘 Having Issues?
-
-### QR Code doesn't appear?
-```bash
-npm start
+You'll see:
 ```
-Wait 10-15 seconds
-
-### "npm: command not found"?
-Node.js isn't installed. Go back to Step 1.
-
-### Bot disconnects?
-Normal! It will auto-reconnect in 5 seconds.
-
-### Need to re-scan QR?
-```bash
-# Delete old session
-# Windows:
-rmdir /s auth_info
-
-# Mac/Linux:
-rm -rf auth_info
-
-# Then restart
-npm start
+🔧 Using WA version v2.3000.x
+🚀 Health check server running on port 3000
+📱 QR Code generated!
 ```
 
 ---
 
-## 📱 Deployment for 24/7 Running
+### 5️⃣ Scan QR Code (30 sec)
 
-**Option 1: Keep your computer on**
-- Free but your PC must stay on
-
-**Option 2: Railway.app (Recommended)**
-- Free tier available
-- Follow the Railway section in main README.md
-
-**Option 3: VPS Server**
-- ~$5/month for 24/7 uptime
-- Follow VPS section in main README.md
+1. WhatsApp → Settings → Linked Devices
+2. Tap "Link a Device"
+3. Scan QR from terminal
+4. Wait for "✅ WhatsApp connection established!"
 
 ---
 
-## 💡 Pro Tips
+### 6️⃣ Test It! (30 sec)
 
-1. **Keep the terminal open** while testing
-2. **Watch the logs** - they tell you everything
-3. **Test with real messages** before going live
-4. **Backup auth_info folder** - it's your session data
+Send a message to your bot:
+```
+Hello
+```
 
----
-
-## 📞 Next Steps
-
-1. ✅ Test with 5-10 different messages
-2. ✅ Check MediDesk dashboard for conversations
-3. ✅ Verify AI responses make sense
-4. ✅ Deploy to Railway for 24/7 operation
+Expected:
+- Terminal shows message received
+- Bot responds with welcome message
+- Check Supabase: new row in `whatsapp_conversations`
 
 ---
 
-**Questions?** Read the full README.md for detailed information!
+## ✅ Verification Checklist
+
+- [ ] `npm install` completed without errors
+- [ ] `.env` file created with correct webhook URL
+- [ ] Supabase function deployed successfully
+- [ ] Hospital record updated in database
+- [ ] QR code scanned successfully
+- [ ] Bot shows "connected" status
+- [ ] Test message received and responded to
+- [ ] Conversation appears in `whatsapp_conversations` table
+
+---
+
+## 🔍 Troubleshooting
+
+**QR doesn't appear?**
+```bash
+npm install qrcode-terminal
+npm start
+```
+
+**"No hospital found" error?**
+```sql
+-- Check your hospital record
+SELECT * FROM hospitals WHERE whatsapp_enabled = true;
+
+-- Update if needed
+UPDATE hospitals 
+SET whatsapp_number = '+YOUR_BOT_NUMBER'
+WHERE id = 'your-hospital-id';
+```
+
+**Webhook not responding?**
+```bash
+# Test it directly
+curl -X POST https://jtotljjdyhxjbbsnpuml.supabase.co/functions/v1/whatsapp-webhook \
+  -H "Content-Type: application/json" \
+  -d '{"from":"whatsapp:+1234567890","to":"whatsapp:+0987654321","body":"test"}'
+```
+
+---
+
+## 🎯 What's Next?
+
+1. **Test with different messages** - Try symptoms, appointment requests
+2. **Check dashboard** - Verify conversations appear
+3. **Deploy to production** - Use Railway or VPS
+4. **Monitor for 24h** - Ensure stability
+5. **Go live!** - Share number with patients
+
+---
+
+**Need help?** Read README.md for full documentation!
