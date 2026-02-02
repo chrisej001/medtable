@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  whatsapp-bot:
+    build: .
+    container_name: medidesk-whatsapp-bot
+    restart: unless-stopped
+    environment:
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - PORT=3000
+      - NODE_ENV=production
+    volumes:
+      # Persist WhatsApp authentication
+      - ./auth_info:/app/auth_info
+      - ./logs:/app/logs
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
